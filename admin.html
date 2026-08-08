@@ -8,7 +8,26 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
   <link rel="stylesheet" href="/style.css">
+  <style>
+    .tmdb-btn { background: #01b4e4; color: #fff; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: none; margin-left: 10px; transition: opacity 0.2s; }
+    .tmdb-btn:hover { opacity: 0.9; }
+    
+    .dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; background: var(--bg-input); transition: all 0.2s; margin-bottom: 0.5rem; }
+    .dropzone.dragover { border-color: var(--accent); background: var(--bg-card-hover); }
+    .dropzone-icon { font-size: 2rem; margin-bottom: 0.5rem; color: var(--text-dim); }
+    
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-content { background: var(--bg-card); border-radius: 16px; padding: 1.5rem; max-width: 500px; width: 100%; border: 1px solid var(--border); max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .modal-close { background: none; border: none; color: var(--text-dim); font-size: 1.5rem; cursor: pointer; }
+    
+    .tmdb-result-img { width: 120px; border-radius: 10px; margin-right: 1rem; float: left; }
+    .tmdb-bio { font-size: 0.9rem; color: var(--text-dim); margin-top: 0.5rem; clear: both; margin-bottom: 1rem; max-height: 150px; overflow-y: auto; }
+    
+    .cropper-container-wrapper { width: 100%; max-height: 400px; margin-bottom: 1rem; }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -45,20 +64,26 @@
               <input type="number" id="gemDay" class="form-input" placeholder="e.g. 1" min="1" required>
             </div>
             <div class="form-group">
-              <label>Actor Name</label>
+              <label>Actor Name <button type="button" class="tmdb-btn" id="btnTmdb" onclick="fetchTmdbData()">🔍 Get TMDB Data</button></label>
               <input type="text" id="gemName" class="form-input" placeholder="e.g. Pankaj Tripathi" required>
             </div>
           </div>
           <div class="form-group">
+            <label>Short Bio / About (Optional)</label>
+            <textarea id="gemBio" class="form-input" rows="3" placeholder="Brief bio about the actor..."></textarea>
+          </div>
+          <div class="form-group">
             <label>Actor Image</label>
-            <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem;">
-              <label class="btn-submit" for="gemImageFile" style="width: auto; padding: 0.6rem 1.2rem; font-size: 0.85rem; cursor: pointer; text-align: center;">📷 Upload Photo</label>
-              <span id="fileName" style="color: var(--text-dim); font-size: 0.85rem;">No file chosen</span>
+            <div id="dropzone" class="dropzone" onclick="document.getElementById('gemImageFile').click()" ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
+              <div class="dropzone-icon">📥</div>
+              <p style="color: var(--text); font-weight: 500;">Drag & drop photo here</p>
+              <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 0.2rem;">or click to browse</p>
             </div>
             <input type="file" id="gemImageFile" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
             <input type="url" id="gemImage" class="form-input" placeholder="Or paste image URL (imgur, imgbb, etc.)" style="margin-top: 0.5rem;">
-            <div id="imagePreview" style="margin-top: 0.75rem; display: none;">
+            <div id="imagePreview" style="margin-top: 0.75rem; display: none; position: relative; width: max-content;">
               <img id="previewImg" style="max-width: 120px; border-radius: 10px; border: 1px solid var(--border);">
+              <button type="button" onclick="clearImageSelection()" style="position: absolute; top: -10px; right: -10px; background: var(--red); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-weight: bold;">✕</button>
             </div>
           </div>
           <div class="form-group">
@@ -83,6 +108,39 @@
 
   <div id="toast" class="toast" style="display: none;"></div>
 
+  <!-- TMDB Modal -->
+  <div id="tmdbModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="color: var(--text);">TMDB Data Found</h3>
+        <button class="modal-close" onclick="closeTmdbModal()">✕</button>
+      </div>
+      <div id="tmdbContent"></div>
+      <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+        <button class="btn-submit" onclick="applyTmdbData()">Use all data</button>
+        <button class="btn-submit" style="background: var(--bg-input); color: var(--text);" onclick="closeTmdbModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cropper Modal -->
+  <div id="cropperModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 style="color: var(--text);">Crop Photo</h3>
+        <button class="modal-close" onclick="closeCropperModal()">✕</button>
+      </div>
+      <div class="cropper-container-wrapper">
+        <img id="cropperImage" src="" style="max-width: 100%; display: block;">
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <button class="btn-submit" onclick="applyCrop()">Apply Crop</button>
+        <button class="btn-submit" style="background: var(--bg-input); color: var(--text);" onclick="closeCropperModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>

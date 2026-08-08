@@ -31,20 +31,35 @@ async function fetchGems() {
         : `<div class="gem-card-image-placeholder">💎</div>`;
 
       const reelBtn = gem.reelUrl
-        ? `<a href="${escapeHTML(gem.reelUrl)}" target="_blank" rel="noopener noreferrer" class="gem-btn gem-btn-reel">▶ Watch Reel</a>`
+        ? `<a href="${escapeHTML(gem.reelUrl)}" target="_blank" rel="noopener noreferrer" class="gem-btn gem-btn-reel">Follow +</a>`
         : '';
 
-      const profileBtn = gem.profileUrl
-        ? `<a href="${escapeHTML(gem.profileUrl)}" target="_blank" rel="noopener noreferrer" class="gem-btn gem-btn-profile">👤 Profile</a>`
-        : '';
+      // Fallback for bio
+      const bioText = gem.bio ? escapeHTML(gem.bio) : 'A newly discovered gem.';
 
       return `
         <div class="gem-card" style="animation-delay: ${index * 0.08}s">
-          ${imageHTML}
+          <div class="gem-card-image-wrapper">
+            ${imageHTML}
+          </div>
           <div class="gem-card-body">
-            <span class="gem-day-badge">Day ${gem.day}</span>
-            <h2 class="gem-name">${escapeHTML(gem.name)}</h2>
-            ${(reelBtn || profileBtn) ? `<div class="gem-actions">${reelBtn}${profileBtn}</div>` : ''}
+            <div class="gem-header-row">
+              <h2 class="gem-name">${escapeHTML(gem.name)}</h2>
+              <span class="verified-badge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/>
+                </svg>
+              </span>
+            </div>
+            
+            <p class="gem-bio">${bioText}</p>
+            
+            <div class="gem-footer-row">
+              <div class="gem-stats">
+                <span>🗓️ Day ${gem.day}</span>
+              </div>
+              ${reelBtn}
+            </div>
           </div>
         </div>
       `;

@@ -20,9 +20,17 @@ module.exports = async function handler(req, res) {
       image_url TEXT DEFAULT '',
       reel_url TEXT DEFAULT '',
       profile_url TEXT DEFAULT '',
+      bio TEXT DEFAULT '',
       added_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+
+  // Ensure bio column exists (migration for existing table)
+  try {
+    await sql`ALTER TABLE gems ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT ''`;
+  } catch (e) {
+    // Ignore error if column already exists
+  }
 
   function isAdmin(req) {
     const password = req.headers['x-admin-password'];
@@ -38,6 +46,7 @@ module.exports = async function handler(req, res) {
         imageUrl: g.image_url,
         reelUrl: g.reel_url,
         profileUrl: g.profile_url,
+        bio: g.bio,
         addedAt: g.added_at,
       }));
       return res.status(200).json(formatted);
@@ -48,7 +57,7 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const { day, name, imageUrl, reelUrl, profileUrl } = req.body;
+      const { day, name, imageUrl, reelUrl, profileUrl, bio } = req.body;
 
       if (!day || !name) {
         return res.status(400).json({ error: 'Day and name are required' });
@@ -65,13 +74,14 @@ module.exports = async function handler(req, res) {
           SET name = ${name},
               image_url = ${imageUrl || ''},
               reel_url = ${reelUrl || ''},
-              profile_url = ${profileUrl || ''}
+              profile_url = ${profileUrl || ''},
+              bio = ${bio || ''}
           WHERE day = ${dayNum}
         `;
       } else {
         await sql`
-          INSERT INTO gems (day, name, image_url, reel_url, profile_url)
-          VALUES (${dayNum}, ${name}, ${imageUrl || ''}, ${reelUrl || ''}, ${profileUrl || ''})
+          INSERT INTO gems (day, name, image_url, reel_url, profile_url, bio)
+          VALUES (${dayNum}, ${name}, ${imageUrl || ''}, ${reelUrl || ''}, ${profileUrl || ''}, ${bio || ''})
         `;
       }
 

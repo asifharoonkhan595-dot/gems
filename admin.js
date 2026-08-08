@@ -118,21 +118,154 @@ async function loadGems() {
 }
 
 let selectedFile = null;
+let currentCropper = null;
+let currentTmdbData = null;
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    initCropper(file);
+  }
+}
 
 function handleFileSelect(input) {
   const file = input.files[0];
   if (!file) return;
-  selectedFile = file;
-  document.getElementById('fileName').textContent = file.name;
-  document.getElementById('gemImage').value = '';
+  initCropper(file);
+  input.value = ''; // Reset input so same file can be selected again
+}
 
-  // Show preview
+function initCropper(file) {
+  selectedFile = file; // Temporarily store original file name/type
+  
   const reader = new FileReader();
   reader.onload = (e) => {
-    document.getElementById('previewImg').src = e.target.result;
-    document.getElementById('imagePreview').style.display = 'block';
+    const cropperImage = document.getElementById('cropperImage');
+    cropperImage.src = e.target.result;
+    document.getElementById('cropperModal').style.display = 'flex';
+    
+    if (currentCropper) {
+      currentCropper.destroy();
+    }
+    
+    currentCropper = new Cropper(cropperImage, {
+      aspectRatio: 3 / 4, // Aspect ratio matching reference design
+      viewMode: 1,
+      autoCropArea: 1,
+    });
   };
   reader.readAsDataURL(file);
+}
+
+function closeCropperModal() {
+  document.getElementById('cropperModal').style.display = 'none';
+  if (currentCropper) {
+    currentCropper.destroy();
+    currentCropper = null;
+  }
+}
+
+function applyCrop() {
+  if (!currentCropper) return;
+  
+  // Get cropped canvas
+  const canvas = currentCropper.getCroppedCanvas({
+    width: 600,
+    height: 800
+  });
+  
+  // Convert to base64 for preview
+  const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  
+  // Update preview
+  document.getElementById('previewImg').src = croppedDataUrl;
+  document.getElementById('imagePreview').style.display = 'block';
+  
+  // Convert to blob for upload and store in selectedFile (replacing original)
+  canvas.toBlob((blob) => {
+    selectedFile = new File([blob], selectedFile.name || 'cropped.jpg', { type: 'image/jpeg' });
+  }, 'image/jpeg', 0.9);
+  
+  closeCropperModal();
+}
+
+function clearImageSelection() {
+  selectedFile = null;
+  document.getElementById('imagePreview').style.display = 'none';
+  document.getElementById('previewImg').src = '';
+  document.getElementById('gemImage').value = '';
+}
+
+// ---- TMDB LOGIC ----
+
+async function fetchTmdbData() {
+  const name = document.getElementById('gemName').value.trim();
+  if (!name) {
+    showToast('Please enter an actor name first', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnTmdb');
+  btn.textContent = '⏳ Loading...';
+  btn.disabled = true;
+
+  try {
+    const response = await fetch(`/api/tmdb?name=${encodeURIComponent(name)}`, {
+      headers: {
+        'x-admin-password': adminPassword
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    currentTmdbData = await response.json();
+    
+    const content = `
+      <div style="margin-bottom: 1rem;">
+        ${currentTmdbData.imageUrl ? `<img src="${currentTmdbData.imageUrl}" class="tmdb-result-img" alt="TMDB Profile">` : '<div class="tmdb-result-img" style="background:#222;height:180px;display:flex;align-items:center;justify-content:center;">No Image</div>'}
+        <h4 style="color:var(--text);font-size:1.1rem;">${currentTmdbData.name}</h4>
+        <p style="color:var(--text-dim);font-size:0.8rem;margin-top:0.2rem;">Popularity: ${currentTmdbData.popularity}</p>
+        <p class="tmdb-bio">${currentTmdbData.bio || 'No biography found.'}</p>
+      </div>
+    `;
+    
+    document.getElementById('tmdbContent').innerHTML = content;
+    document.getElementById('tmdbModal').style.display = 'flex';
+
+  } catch (error) {
+    console.error('TMDB Error:', error);
+    showToast('Could not fetch TMDB data', 'error');
+  } finally {
+    btn.textContent = '🔍 Get TMDB Data';
+    btn.disabled = false;
+  }
+}
+
+function closeTmdbModal() {
+  document.getElementById('tmdbModal').style.display = 'none';
+  currentTmdbData = null;
+}
+
+function applyTmdbData() {
+  if (!currentTmdbData) return;
+  
+  document.getElementById('gemName').value = currentTmdbData.name;
+  
+  if (currentTmdbData.bio) {
+    document.getElementById('gemBio').value = currentTmdbData.bio;
+  }
+  
+  if (currentTmdbData.imageUrl) {
+    document.getElementById('gemImage').value = currentTmdbData.imageUrl;
+    clearImageSelection(); // prioritize URL over file
+  }
+  
+  closeTmdbModal();
+  showToast('TMDB data applied!', 'success');
 }
 
 async function uploadImage(file) {
@@ -195,6 +328,7 @@ async function handleAddGem(event) {
   const gem = {
     day: parseInt(document.getElementById('gemDay').value),
     name: document.getElementById('gemName').value.trim(),
+    bio: document.getElementById('gemBio').value.trim(),
     imageUrl: imageUrl,
     reelUrl: document.getElementById('gemReel').value.trim(),
     profileUrl: document.getElementById('gemProfile').value.trim(),
@@ -231,9 +365,7 @@ async function handleAddGem(event) {
 
     showToast(`Day ${gem.day} — ${gem.name} added! 🎉`, 'success');
     document.getElementById('addGemForm').reset();
-    selectedFile = null;
-    document.getElementById('fileName').textContent = 'No file chosen';
-    document.getElementById('imagePreview').style.display = 'none';
+    clearImageSelection();
     loadGems();
 
   } catch (error) {
