@@ -177,29 +177,28 @@ async function handleAddGem(event) {
   submitBtn.disabled = true;
   submitBtn.textContent = 'Adding...';
 
-  try {
-    // Upload image first if a file was selected
-    let imageUrl = document.getElementById('gemImage').value.trim();
+  // Upload image first if a file was selected
+  let imageUrl = document.getElementById('gemImage').value.trim();
 
-    if (selectedFile) {
-      submitBtn.textContent = 'Uploading image...';
-      try {
-        imageUrl = await uploadImage(selectedFile);
-      } catch (err) {
-        showToast('Image upload failed: ' + err.message, 'error');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Add Gem';
-        return;
-      }
+  if (selectedFile) {
+    submitBtn.textContent = 'Uploading image...';
+    try {
+      imageUrl = await uploadImage(selectedFile);
+    } catch (err) {
+      showToast('Image upload failed: ' + err.message, 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add Gem';
+      return;
     }
+  }
 
-    const gem = {
-      day: parseInt(document.getElementById('gemDay').value),
-      name: document.getElementById('gemName').value.trim(),
-      imageUrl: imageUrl,
-      reelUrl: document.getElementById('gemReel').value.trim(),
-      profileUrl: document.getElementById('gemProfile').value.trim(),
-    };
+  const gem = {
+    day: parseInt(document.getElementById('gemDay').value),
+    name: document.getElementById('gemName').value.trim(),
+    imageUrl: imageUrl,
+    reelUrl: document.getElementById('gemReel').value.trim(),
+    profileUrl: document.getElementById('gemProfile').value.trim(),
+  };
 
   if (!gem.day || !gem.name) {
     showToast('Day and Name are required', 'error');
