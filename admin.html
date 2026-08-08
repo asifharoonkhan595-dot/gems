@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Hidden Gems</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Login Section (shown when not authenticated) -->
+    <div class="admin-login" id="loginSection">
+      <div class="header-icon">🔐</div>
+      <h2>Admin Access</h2>
+      <p style="color: var(--text-dim); margin-bottom: 1.5rem;">Enter your password to manage gems</p>
+      <div class="form-group">
+        <input type="password" id="passwordInput" class="form-input" placeholder="Enter admin password" autocomplete="current-password">
+      </div>
+      <button class="btn-submit" id="loginBtn" onclick="attemptLogin()">Unlock</button>
+    </div>
+
+    <!-- Admin Panel (shown when authenticated) -->
+    <div id="adminPanel" style="display: none;">
+      <div class="admin-nav">
+        <div>
+          <h1 style="font-size: 1.5rem; font-weight: 800;">💎 Hidden Gems Admin</h1>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <a href="/" class="nav-link">← View Site</a>
+          <button class="btn-delete" onclick="logout()" style="padding: 0.5rem 1rem;">Logout</button>
+        </div>
+      </div>
+
+      <!-- Add New Gem Form -->
+      <div class="form-card">
+        <h2>✨ Add New Gem</h2>
+        <form id="addGemForm" onsubmit="handleAddGem(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Day Number</label>
+              <input type="number" id="gemDay" class="form-input" placeholder="e.g. 1" min="1" required>
+            </div>
+            <div class="form-group">
+              <label>Actor Name</label>
+              <input type="text" id="gemName" class="form-input" placeholder="e.g. Pankaj Tripathi" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Actor Image</label>
+            <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem;">
+              <label class="btn-submit" for="gemImageFile" style="width: auto; padding: 0.6rem 1.2rem; font-size: 0.85rem; cursor: pointer; text-align: center;">📷 Upload Photo</label>
+              <span id="fileName" style="color: var(--text-dim); font-size: 0.85rem;">No file chosen</span>
+            </div>
+            <input type="file" id="gemImageFile" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
+            <input type="url" id="gemImage" class="form-input" placeholder="Or paste image URL (imgur, imgbb, etc.)" style="margin-top: 0.5rem;">
+            <div id="imagePreview" style="margin-top: 0.75rem; display: none;">
+              <img id="previewImg" style="max-width: 120px; border-radius: 10px; border: 1px solid var(--border);">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Instagram Reel URL</label>
+            <input type="url" id="gemReel" class="form-input" placeholder="https://instagram.com/reel/...">
+          </div>
+          <div class="form-group">
+            <label>Actor Profile / Instagram URL</label>
+            <input type="url" id="gemProfile" class="form-input" placeholder="https://instagram.com/username">
+          </div>
+          <button type="submit" class="btn-submit" id="submitBtn">Add Gem</button>
+        </form>
+      </div>
+
+      <!-- Existing Gems -->
+      <div class="form-card">
+        <h2>📋 All Gems</h2>
+        <div id="gemsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" style="display: none;"></div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
