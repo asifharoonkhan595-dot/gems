@@ -34,14 +34,15 @@ async function fetchGems() {
         ? `<a href="${escapeHTML(gem.reelUrl)}" target="_blank" rel="noopener noreferrer" class="gem-btn gem-btn-reel">Follow +</a>`
         : '';
 
-      // Fallback for bio
+      const profileBtn = gem.profileUrl
+        ? `<a href="${escapeHTML(gem.profileUrl)}" target="_blank" rel="noopener noreferrer" class="gem-btn gem-btn-profile">Profile</a>`
+        : '';
+
       const bioText = gem.bio ? escapeHTML(gem.bio) : 'A newly discovered gem.';
 
       return `
         <div class="gem-card" style="animation-delay: ${index * 0.08}s">
-          <div class="gem-card-image-wrapper">
-            ${imageHTML}
-          </div>
+          ${imageHTML}
           <div class="gem-card-body">
             <div class="gem-header-row">
               <h2 class="gem-name">${escapeHTML(gem.name)}</h2>
@@ -56,9 +57,15 @@ async function fetchGems() {
             
             <div class="gem-footer-row">
               <div class="gem-stats">
-                <span>🗓️ Day ${gem.day}</span>
+                <span>
+                  <svg class="gem-stats-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  Day ${gem.day}
+                </span>
               </div>
-              ${reelBtn}
+              <div class="gem-btn-group">
+                ${profileBtn}
+                ${reelBtn}
+              </div>
             </div>
           </div>
         </div>
