@@ -11,15 +11,52 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function attemptLogin() {
+async function attemptLogin() {
   const password = document.getElementById('passwordInput').value.trim();
   if (!password) {
     showToast('Please enter a password', 'error');
     return;
   }
-  adminPassword = password;
-  sessionStorage.setItem('adminPassword', password);
-  showAdminPanel();
+
+  const loginBtn = document.getElementById('loginBtn');
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Checking...';
+
+  try {
+    // Verify password against server by making a test request
+    const response = await fetch('/api/gems');
+    if (!response.ok) {
+      showToast('Server error. Try again.', 'error');
+      return;
+    }
+
+    // Try a dummy POST to verify the password works
+    const testRes = await fetch('/api/gems', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-password': password,
+      },
+      body: JSON.stringify({ day: 0, name: '' }),
+    });
+
+    // 401 = wrong password, 400 = password correct but validation error (expected)
+    if (testRes.status === 401) {
+      showToast('Wrong password!', 'error');
+      return;
+    }
+
+    // Password is valid (we got 400 = bad request, which means auth passed)
+    adminPassword = password;
+    sessionStorage.setItem('adminPassword', password);
+    showAdminPanel();
+
+  } catch (error) {
+    showToast('Cannot connect to server', 'error');
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Unlock';
+  }
 }
 
 function logout() {
